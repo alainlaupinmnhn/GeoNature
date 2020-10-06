@@ -31,8 +31,6 @@ def get_tag_content(parent, tag_name, default_value=None):
 
 def parse_actors_xml(actors):
     actor_list = []
-    print()
-    print(actors)
     if actors is not None:
         for actor_type_node in actors:
             name = get_tag_content(actor_type_node, "nomPrenom")
@@ -152,6 +150,7 @@ def parse_jdd_xml(xml):
             "terrestrial_domain": json.loads(terrestrial_domain),
             "marine_domain": json.loads(marine_domain),
             "id_nomenclature_data_type": data_type,
+            "id_module": collect_data_type,
             "id_digitizer": id_digitizer,
             "actors": all_actors,
         }

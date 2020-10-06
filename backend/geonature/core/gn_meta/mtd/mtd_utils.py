@@ -14,7 +14,7 @@ from geonature.core.gn_meta.models import (
     TAcquisitionFramework,
     CorAcquisitionFrameworkActor,
 )
-from geonature.core.gn_commons.models import TModules, CorModuleDataset
+from geonature.core.gn_commons.models import TModules
 from geonature.core.users.models import BibOrganismes
 
 from .xml_parser import parse_acquisition_framwork_xml, parse_jdd_xml
@@ -125,33 +125,23 @@ def post_acquisition_framework(uuid=None, id_user=None, id_organism=None):
     return {"message": "Not found"}, 404
 
 
-def add_dataset_module(dataset_obj):
-    if not dataset_obj.modules:
-        dataset_obj.modules.extend(
+def add_dataset_module(dataset, id_module):
+    if id_module is not None:
+        dataset.modules.extend(
+            DB.session.query(TModules)
+            .filter(
+                TModules.id_module == id_module
+            ).all()
+        )
+    else:
+        dataset.modules.extend(
             DB.session.query(TModules)
             .filter(
                 TModules.module_code.in_(
                     current_app.config["CAS"]["JDD_MODULE_CODE_ASSOCIATION"]
                 )
-            )
-            .all()
+            ).all()
         )
-
-
-def create_cor_dataset_module(dataset, module_code):
-    print(dataset.modules)
-    if module_code is not None:
-        dict_cor = {
-            "id_module": module_code,
-            "id_dataset": dataset.id_dataset
-        }
-        cor_module = CorModuleDataset(**dict_cor)
-        dataset.modules.append(cor_module)
-        print(dataset.modules)
-        print(cor_module.id_dataset)
-        print(cor_module.id_module)
-    else:
-        add_dataset_module(dataset)
 
 
 def post_jdd_from_user(id_user=None, id_organism=None):
@@ -161,7 +151,6 @@ def post_jdd_from_user(id_user=None, id_organism=None):
     dataset_list_model = []
     if xml_jdd:
         dataset_list = parse_jdd_xml(xml_jdd)
-        print(dataset_list)
         posted_af_uuid = {}
         for ds in dataset_list:
             actors = ds.pop("actors")
@@ -192,6 +181,7 @@ def post_jdd_from_user(id_user=None, id_organism=None):
                         NOMENCLATURE_MAPPING.get(key), value
                     )
             #  set validable = true
+            id_module = ds.pop("id_module")
             ds["validable"] = True
             ds["active"] = True
             dataset = TDatasets(**ds)
@@ -206,15 +196,13 @@ def post_jdd_from_user(id_user=None, id_organism=None):
                 DB.session.execute(delete_q)
                 DB.session.commit()
                 create_cor_object_actors(actors, dataset)
-                add_dataset_module(dataset)
-                #create_cor_dataset_module(dataset, ds["id_collect_data_type"])
+                add_dataset_module(dataset, id_module)
                 DB.session.merge(dataset)
 
             # its a new DS
             else:
                 create_cor_object_actors(actors, dataset)
-                add_dataset_module(dataset)
-                #create_cor_dataset_module(dataset, ds["id_collect_data_type"])
+                add_dataset_module(dataset, id_module)
                 # Add the new DS
                 DB.session.add(dataset)
             # try to commit
