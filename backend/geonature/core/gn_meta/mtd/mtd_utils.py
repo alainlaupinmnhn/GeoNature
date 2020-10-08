@@ -16,6 +16,8 @@ from geonature.core.gn_meta.models import (
 )
 from geonature.core.gn_commons.models import TModules
 from geonature.core.users.models import BibOrganismes
+from geonature.core.users import routes as users
+from pypnusershub.db.models import User
 
 from .xml_parser import parse_acquisition_framwork_xml, parse_jdd_xml
 from .mtd_webservice import get_jdd_by_user_id, get_acquisition_framework
@@ -34,44 +36,71 @@ gunicorn_error_logger = logging.getLogger("gunicorn.error")
 
 def create_cor_object_actors(actors, new_object):
     for act in actors:
+        person = None
         org = None
+        id_person = None
+        id_organism = None
+
+        if act["name"]:
+            person = (
+                DB.session.query(User)
+                .filter(User.nom_role == act["name"])
+                .one_or_none()
+            )
+            if not person:
+                person = {
+                    "id_role": None,
+                    "nom_role": act["name"]
+                }
+                users.insert_role(person)
+                person = (
+                    DB.session.query(User)
+                    .filter(User.nom_role == act["name"])
+                    .one_or_none()
+                )
+            id_person = person.id_role
+
         # UUID in actually only present on JDD XML files
         # Filter on UUID is preferable if available since it avoids dupes based on name changes
-        if act["uuid_organism"]:
-            org = (
-                DB.session.query(BibOrganismes)
-                .filter(BibOrganismes.uuid_organisme == act["uuid_organism"])
-                .one_or_none()
-            )
-        else:
-            org = (
-                DB.session.query(BibOrganismes)
-                .filter(BibOrganismes.nom_organisme == act["organism"])
-                .one_or_none()
-            )
-        if not org:
-            org = BibOrganismes(
-                **{
-                    "nom_organisme": act["organism"],
-                    "uuid_organisme": act["uuid_organism"],
-                }
-            )
-            DB.session.add(org)
-            DB.session.commit()
+        if act["uuid_organism"] or act["organism"]:
+            if act["uuid_organism"]:
+                org = (
+                    DB.session.query(BibOrganismes)
+                    .filter(BibOrganismes.uuid_organisme == act["uuid_organism"])
+                    .one_or_none()
+                )
+            else:
+                org = (
+                    DB.session.query(BibOrganismes)
+                    .filter(BibOrganismes.nom_organisme == act["organism"])
+                    .one_or_none()
+                )
+            if not org:
+                org = BibOrganismes(
+                    **{
+                        "nom_organisme": act["organism"],
+                        "uuid_organisme": act["uuid_organism"],
+                    }
+                )
+                DB.session.add(org)
+                DB.session.commit()
+            id_organism = org.id_organisme
 
-        dict_cor = {
-            "id_organism": org.id_organisme,
-            "id_nomenclature_actor_role": func.ref_nomenclatures.get_id_nomenclature(
-                "ROLE_ACTEUR", act["actor_role"]
-            ),
-        }
+        if id_person or id_organism:
+            dict_cor = {
+                "id_role": id_person,
+                "id_organism": id_organism,
+                "id_nomenclature_actor_role": func.ref_nomenclatures.get_id_nomenclature(
+                    "ROLE_ACTEUR", act["actor_role"]
+                ),
+            }
 
-        if isinstance(new_object, TAcquisitionFramework):
-            cor_actor = CorAcquisitionFrameworkActor(**dict_cor)
-            new_object.cor_af_actor.append(cor_actor)
-        elif isinstance(new_object, TDatasets):
-            cor_actor = CorDatasetActor(**dict_cor)
-            new_object.cor_dataset_actor.append(cor_actor)
+            if isinstance(new_object, TAcquisitionFramework):
+                cor_actor = CorAcquisitionFrameworkActor(**dict_cor)
+                new_object.cor_af_actor.append(cor_actor)
+            elif isinstance(new_object, TDatasets):
+                cor_actor = CorDatasetActor(**dict_cor)
+                new_object.cor_dataset_actor.append(cor_actor)
 
 
 def post_acquisition_framework(uuid=None, id_user=None, id_organism=None):
