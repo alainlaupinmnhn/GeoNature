@@ -35,18 +35,27 @@ gunicorn_error_logger = logging.getLogger("gunicorn.error")
 
 
 def create_cor_object_actors(actors, new_object):
+    """
+        Create a new cor_dataset_actor/cor_acquisition_framework_actor object for the JDD/AF
+        Input :
+            actors (list) : List of all actors related to the JDD/AF
+            new_object : JDD or AF
+    """
     for act in actors:
         person = None
         org = None
         id_person = None
         id_organism = None
 
+        # If the name of the contact Person was provided in the XML file, we try to link him to the t_role table
         if act["name"]:
+            # We first check if the Person's nom_role exists in the t_role table
             person = (
                 DB.session.query(User)
                 .filter(User.nom_role == act["name"])
                 .one_or_none()
             )
+            # If not, we create it as a new Person in the t_role table and get his ID back
             if not person:
                 person = {
                     "id_role": None,
@@ -60,9 +69,10 @@ def create_cor_object_actors(actors, new_object):
                 )
             id_person = person.id_role
 
-        # UUID in actually only present on JDD XML files
-        # Filter on UUID is preferable if available since it avoids dupes based on name changes
+        # If the informations about the Organism is provided, we try to link it to the bib_organismes table
         if act["uuid_organism"] or act["organism"]:
+            # UUID in actually only present on JDD XML files
+            # Filter on UUID is preferable if available since it avoids dupes based on name changes
             if act["uuid_organism"]:
                 org = (
                     DB.session.query(BibOrganismes)
@@ -75,6 +85,7 @@ def create_cor_object_actors(actors, new_object):
                     .filter(BibOrganismes.nom_organisme == act["organism"])
                     .one_or_none()
                 )
+            # If no Organism was corresponding in the bib_organismes table, we add it
             if not org:
                 org = BibOrganismes(
                     **{
@@ -86,6 +97,8 @@ def create_cor_object_actors(actors, new_object):
                 DB.session.commit()
             id_organism = org.id_organisme
 
+        # With at least the Person or the Organism was provided for the actor in the XML file,
+        # we build the data for the correlation
         if id_person or id_organism:
             dict_cor = {
                 "id_role": id_person,
@@ -95,6 +108,7 @@ def create_cor_object_actors(actors, new_object):
                 ),
             }
 
+            # We finally build the correlation corresponding to the JDD/AF
             if isinstance(new_object, TAcquisitionFramework):
                 cor_actor = CorAcquisitionFrameworkActor(**dict_cor)
                 new_object.cor_af_actor.append(cor_actor)
@@ -224,12 +238,15 @@ def post_jdd_from_user(id_user=None, id_organism=None):
                 )
                 DB.session.execute(delete_q)
                 DB.session.commit()
+
+                # create the correlation links
                 create_cor_object_actors(actors, dataset)
                 add_dataset_module(dataset, id_module)
                 DB.session.merge(dataset)
 
             # its a new DS
             else:
+                # create the correlation links
                 create_cor_object_actors(actors, dataset)
                 add_dataset_module(dataset, id_module)
                 # Add the new DS

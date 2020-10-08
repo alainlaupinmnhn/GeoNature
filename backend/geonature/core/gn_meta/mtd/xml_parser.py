@@ -30,13 +30,20 @@ def get_tag_content(parent, tag_name, default_value=None):
 
 
 def parse_actors_xml(actors):
+    """
+        Parse the parameters of the Actor provided as an XML node in the input variable "actors"
+        Param:
+            actors (etree Element): Node of an actor type containing from one to multiple actors
+        Returns:
+            dict: A dictionnary of the actors informations
+    """
     actor_list = []
     if actors is not None:
-        for actor_type_node in actors:
-            name = get_tag_content(actor_type_node, "nomPrenom")
-            actor_role = get_tag_content(actor_type_node, "roleActeur")
-            uuid_organism = get_tag_content(actor_type_node, "idOrganisme")
-            organism = get_tag_content(actor_type_node, "organisme")
+        for actor_node in actors:
+            name = get_tag_content(actor_node, "nomPrenom")
+            actor_role = get_tag_content(actor_node, "roleActeur")
+            uuid_organism = get_tag_content(actor_node, "idOrganisme")
+            organism = get_tag_content(actor_node, "organisme")
 
             actor_list.append(
                 {
@@ -58,6 +65,8 @@ def parse_acquisition_framwork_xml(xml):
     """
     root = ET.fromstring(xml, parser=_xml_parser)
     ca = root.find(".//" + namespace + "CadreAcquisition")
+
+    # We extract all the required informations from the different tags of the XML file
     ca_uuid = get_tag_content(ca, "identifiantCadre")
     ca_name = get_tag_content(ca, "libelle")
     ca_desc = get_tag_content(ca, "description", default_value="")
@@ -68,14 +77,16 @@ def parse_acquisition_framwork_xml(xml):
     ca_id_digitizer = None
     attributs_additionnels_node = ca.find(namespace + "attributsAdditionnels")
 
+    # We extract the ID of the user to assign it the JDD as an id_digitizer
     for attr in attributs_additionnels_node:
         if get_tag_content(attr, "nomAttribut") == "ID_CREATEUR":
             ca_id_digitizer = get_tag_content(attr, "valeurAttribut")
 
-    #principal_actor = parse_actors_xml(ca.find(namespace + "acteurPrincipal"))
-    #secondary_actors = parse_actors_xml(ca.find(namespace + "acteurAutre"))
-    #all_actors = principal_actor + secondary_actors
-
+    # We search for all the Contact nodes :
+    # - Main contact in acteurPrincipal node
+    # - Funder in acteurAutre node
+    # - Project owner in acteurAutre node
+    # - Project manager in acteurAutre node
     list_contact_tags = ["acteurPrincipal", "acteurAutre"]
     all_actors = []
     for contact_tag in list_contact_tags:
@@ -105,9 +116,9 @@ def parse_jdd_xml(xml):
     root = ET.fromstring(xml, parser=_xml_parser)
     jdd_list = []
     for jdd in root.findall(".//" + namespace + "JeuDeDonnees"):
+        # We extract all the required informations from the different tags of the XML file
         jdd_uuid = get_tag_content(jdd, "identifiantJdd")
         ca_uuid = get_tag_content(jdd, "identifiantCadre")
-
         dataset_name = get_tag_content(jdd, "libelle")
         dataset_shortname = get_tag_content(jdd, "libelleCourt")
         dataset_desc = get_tag_content(jdd, "description", default_value="")
@@ -117,6 +128,7 @@ def parse_jdd_xml(xml):
         collect_data_type = get_tag_content(jdd, "typeDonneesCollectees")
         attributs_additionnels_node = jdd.find(namespace + "attributsAdditionnels")
 
+        # We extract the ID of the user to assign it the JDD as an id_digitizer
         id_digitizer = None
         id_platform = None
         for attr in attributs_additionnels_node:
@@ -126,6 +138,11 @@ def parse_jdd_xml(xml):
             if get_tag_content(attr, "nomAttribut") == "ID_PLATEFORME":
                 id_platform = get_tag_content(attr, "valeurAttribut")
 
+        # We search for all the Contact nodes :
+        # - Main contact in pointContactPF node
+        # - JDD provider in pointContactJdd node
+        # - JDD builder in pointContactJdd node
+        # - Database contact in contactBaseProduction node
         list_contact_tags = ["pointContactPF", "pointContactJdd", "contactBaseProduction"]
         all_actors = []
         for contact_tag in list_contact_tags:
@@ -140,6 +157,7 @@ def parse_jdd_xml(xml):
 
         keywords = None
 
+        # We build the JDD data from all the variables collected from the XML file
         current_jdd = {
             "unique_dataset_id": jdd_uuid,
             "uuid_acquisition_framework": ca_uuid,
