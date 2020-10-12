@@ -35,7 +35,7 @@ def parse_actors_xml(actors):
         Param:
             actors (etree Element): Node of an actor type containing from one to multiple actors
         Returns:
-            dict: A dictionnary of the actors informations
+            dict: A list of dictionnaries of the actors informations
     """
     actor_list = []
     if actors is not None:
