@@ -10,8 +10,10 @@ import { AfFormComponent } from './af/af-form.component';
 import { ActorComponent } from './actors/actors.component';
 import { MetadataComponent } from './metadata.component';
 import { AfCardComponent } from './af/af-card.component';
+import { AfExportComponent } from './af/af-export.component';
 import { ChartsModule } from 'ng2-charts/ng2-charts';
 import { ChartModule } from 'angular2-chartjs';
+
 
 const routes: Routes = [
   { path: '', component: MetadataComponent },
@@ -20,7 +22,8 @@ const routes: Routes = [
   { path: 'dataset_detail/:id', component: DatasetCardComponent },
   { path: 'af', component: AfFormComponent },
   { path: 'af/:id', component: AfFormComponent },
-  { path: 'af_detail/:id', component: AfCardComponent }
+  { path: 'af_detail/:id', component: AfCardComponent },
+  { path: 'af_detail/:id/export', component: AfExportComponent }
 ];
 
 @NgModule({
@@ -42,7 +45,8 @@ const routes: Routes = [
     DatasetCardComponent,
     AfFormComponent,
     ActorComponent,
-    AfCardComponent
+    AfCardComponent,
+    AfExportComponent
   ],
 })
 export class MetadataModule { }

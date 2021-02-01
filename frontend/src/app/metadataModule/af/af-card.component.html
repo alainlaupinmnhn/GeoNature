@@ -42,7 +42,7 @@
           <button
             mat-raised-button
             color="primary"
-            (click)="getPdf()"
+            [routerLink]="['/metadata/af_detail', af?.id_acquisition_framework, 'export']"
           >
             Export PDF
             <mat-icon>file_download</mat-icon>
