@@ -1,0 +1,295 @@
+<div class="container-fluid mt-4 ">
+  <div class="row">
+    <div class="col-5">
+      <button
+        mat-raised-button
+        [routerLink]="['/metadata/af_detail', af?.id_acquisition_framework]"
+        class="mb-2"
+      >
+        <mat-icon>chevron_left</mat-icon>
+        Retour
+      </button>
+    </div>
+
+  </div>
+  <div class="row">
+
+    <div class="col-8">
+
+      <div class="card">
+        <div class="card-body">
+          <h5 class="text-muted"> Cadre d'acquisition</h5>
+          <h4>{{af?.acquisition_framework_name}}
+            <button
+              [disabled]="!af?.cruved?.U"
+              [routerLink]="['/metadata/af_detail', af?.id_acquisition_framework]"
+              mat-mini-fab
+              color="primary"
+              matTooltip="Editer le cadre d'acquisition"
+              class="mr-2 float-right"
+            >
+              <mat-icon>create</mat-icon>
+
+            </button>
+          </h4>
+
+        </div>
+      </div>
+    </div>
+    <div class="col-4">
+      <div class="card">
+        <div class="card-body">
+          <button
+            mat-raised-button
+            color="primary"
+            (click)="getPdf()"
+          >
+            Download PDF
+            <mat-icon>file_download</mat-icon>
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div id="pdfContent">
+    <div class="header">
+      <img
+        class="bandeau"
+        src="./assets/images/Bandeau_pdf.jpg"
+      alt="Bandeau"
+      >
+      <img
+        class="logo"
+        src="./assets/images/logo_structure.jpg"
+      alt="Logo"
+      >
+    </div>
+
+    <div class="titre">
+      <label class="label-titre">
+        <span *ngIf="is_certificate">{{ pdfClosedTitle }}</span>
+        <br>
+        {{ pdfTitle }}
+      </label>
+      <br>
+      <label class="label-titre">
+        {{ af?.acquisition_framework_name }}
+      </label>
+      <span *ngIf="af?.initial_closing_date && is_certificate">
+      <br>
+      <span class="label-closing-date">
+          Date de dépôt : {{ af?.initial_closing_date && is_certificate }}
+      </span>
+      </span>
+      <div class="ligne-titre ligne main-color"></div>
+
+    </div>
+
+    <div class="etiquettes-ca">
+      <div
+        class="etiquette"
+        id="jeux-donnees-{{ entite ? entite: 'defaut'}}"
+      >
+        <div class="etiquette-haut">
+          <img
+            class="logo-etiquette"
+            src="./assets/images/JDD_icon.jpg"
+            alt="jdd-icon"
+          >
+          <p class="titre-etiquette">Jeux de données</p>
+        </div>
+        <div class="etiquette-bas">
+          <p class="stat-etiquette">
+            {{af?.stats?.nb_data}}
+          </p>
+        </div>
+      </div>
+      <div class="etiquette">
+        <div class="etiquette-haut">
+          <img class="logo-etiquette"
+            src="./assets/images/Taxon_icon.jpg"
+            alt="taxon-icon"
+            id="taxon-icon"
+          >
+          <p class="titre-etiquette">Nombre de taxons</p>
+        </div>
+        <div class="etiquette-bas">
+          <p class="stat-etiquette">
+            {{af?.stats?.nb_taxons}}
+          </p>
+        </div>
+      </div>
+      <div class="etiquette">
+        <div class="etiquette-haut">
+          <img
+            class="logo-etiquette"
+            src="./assets/images/Habitat_icon.jpg"
+            alt="habitat-icon"
+          >
+          <p class="titre-etiquette">Nombre d'habitats</p>
+        </div>
+        <div class="etiquette-bas">
+          <p class="stat-etiquette">
+            {{af?.stats?.nb_habitats}}
+          </p>
+        </div>
+      </div>
+      <div class="etiquette">
+        <div class="etiquette-haut">
+          <img
+            class="logo-etiquette"
+            src="./assets/images/Donnee_icon.jpg"
+            alt="donnee-icon"
+          >
+          <p class="titre-etiquette">Nombre d'observations</p>
+        </div>
+        <div class="etiquette-bas">
+          <p class="stat-etiquette">
+            {{af?.stats?.nb_observations}}
+          </p>
+        </div>
+      </div>
+    </div>
+
+    <div class="description">
+      <div class="left-block">
+        <p class="fiche-descriptive">Cadre d'acquisition</p>
+        <div class="information">
+          <p class="info-titre">Identification</p>
+          <p class="info-contenu">
+            Instance SNIP du cadre d'acquisition :
+            {{af?.unique_acquisition_framework_id}}
+            <br>
+            Libellé du cadre d'acquisition : {{af?.acquisition_framework_name}}
+            <br>
+            Description : {{af?.acquisition_framework_desc}}
+          </p>
+        </div>
+
+        <div class="information">
+          <p class="info-titre">Cadre de référence</p>
+          <p class="info-contenu">
+            Est un méta-cadre : <span *ngIf="af?.is_parent">Oui</span> <span *ngIf="!af?.is_parent">Non</span>
+            <br>
+            <span *ngIf="af?.is_parent">Identifiant du méta-cadre : {{af?.acquisition_framework_parent_id}</span>
+          </p>
+        </div>
+
+        <div class="information">
+          <p class="info-titre">Dates</p>
+          <p class="info-contenu">
+            <span *ngIf="af?.acquisition_framework_start_date">Date de lancement du cadre d'acquisition :
+            {{af?.acquisition_framework_start_date}}
+            <br></span>
+            <span *ngIf="af?.acquisition_framework_end_date">Date de clôture du cadre d'acquisition :
+              {{af?.acquisition_framework_end_date}}</span>
+          </p>
+        </div>
+
+        <div class="information">
+          <p class="info-titre">Territoires concernés</p>
+          <p class="info-contenu" *ngIf="af?.id_nomenclature_territorial_level">
+            Etendue territoriale : {{af?.id_nomenclature_territorial_level}}
+          </p>
+        </div>
+
+        <div class="information" *ngIf="af?.cor_objectifs">
+          <p class="info-titre">Objectifs</p>
+          <p class="info-contenu">
+            <span *ngFor="let obj of af?.cor_objectifs; let i = index">
+              <span *ngIf="i<af?.cor_objectifs.length-1">{{ obj.mnemonique }}, </span>
+              <span *ngIf="i==af?.cor_objectifs.length-1">{{ obj.mnemonique }}</span>
+            </span>
+          </p>
+        </div>
+
+        <div class="information">
+          <p class="info-titre">Cible taxonomique</p>
+          <p class="info-contenu">
+            {{af?.target_description}}
+          </p>
+        </div>
+
+        <div class="information" *ngIf="af?.cor_af_actor">
+          <p class="info-titre">Acteurs</p>
+          <p class="info-contenu" *ngFor="let act of af?.cor_af_actor">
+            <span *ngIf="act.nomenclature_actor_role">{{ act.nomenclature_actor_role['mnemonique'] }}</span> :
+            <span *ngIf="act.organism">{{ act.organism['nom_organisme'] }}</span>
+            <span *ngIf="act.organism && act.role"> - </span>
+            <span *ngIf="act.role">{{ act.role['nom_complet'] }}</span>
+            <br>
+          </p>
+        </div>
+
+        <div class="information" *ngIf="af?.keywords">
+          <p class="info-titre">Mots-clés</p>
+          <p class="info-contenu">
+            {{af?.keywords}}
+          </p>
+        </div>
+      </div>
+
+      <div class="right-block">
+        <!--<div class="carte">
+          <p class="zone-geographique">Zone géographique</p>
+          <div style="display: block">
+            <pnx-map
+              height="20vh"
+              searchBar="false"
+            >
+              <pnx-geojson
+                [geojson]="af?.bbox"
+                [zoomOnFirstTime]="true"
+              >
+              </pnx-geojson>
+            </pnx-map>
+          </div>
+        </div>-->
+
+        <div *ngIf="this.pieChartLabels.length > 0 && af?.stats?.nb_data > 0">
+          <p>Répartition des espèces</p>
+          <div style="display: block">
+            <canvas #repartitionCanvas id="canvas-repartition"
+              baseChart
+              [data]="pieChartData"
+              [labels]="pieChartLabels"
+              [chartType]="pieChartType"
+              [colors]="pieChartColors"
+              [options]="pieChartOptions"
+              padding="20px"
+            >
+            </canvas>
+          </div>
+        </div>
+
+        <div class="jdd" *ngIf="af?.stats?.nb_data > 0">
+          <hr
+            class="ligne-jeux-donnees ligne"
+            id="ligne-jeux-donnees-{{ entite ? entite: 'defaut'}}"
+          >
+          <p class="liste-jdd">Liste des jeux de données associés au cadre</p>
+          <div class="jdd-details" *ngFor="let dataset of af?.datasets">
+            <img
+              class="logo-jdd"
+              src="./assets/images/Taxon_icon_vert.jpg"
+              alt="taxon-vert-icon"
+            >
+            <p class="jdd-info">
+              {{ dataset?.unique_dataset_id }}
+              <br>
+              {{ dataset?.dataset_name }}
+            </p>
+          </div>
+        </div>
+      </div><!--
+
+      <div class="footer">
+        <a
+          target="_blank"
+          href="{{data.footer['url']}}"
+        >{{data.footer['url']}}</a>
+        <span>{{data.footer['date']}}</span>
+      </div>-->
+  </div>
+</div>
