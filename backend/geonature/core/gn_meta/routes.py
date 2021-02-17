@@ -1124,7 +1124,7 @@ def publish_acquisition_framework_mail(af, info_role):
         ca_idtps = ""
 
     # Generate the links for the AF's deposite certificate and framework download
-    pdf_url = current_app.config["API_ENDPOINT"] + "/meta/acquisition_frameworks/export_pdf/" + str(af.id_acquisition_framework)
+    pdf_url = current_app.config["URL_APPLICATION"] + "/#/metadata/af_detail/" + str(af.id_acquisition_framework) + "/export?certificate=true"
 
     # Mail subject
     mail_subject = "Dépôt du cadre d'acquisition " + str(af.unique_acquisition_framework_id).upper()
