@@ -61,7 +61,7 @@
             color="primary"
             class="mr-1 mb-2"
             matTooltip="Télécharger la fiche PDF"
-            (click)="getPdf()"
+            [routerLink]="['/metadata/dataset_detail', dataset?.id_dataset, 'export']"
           >
             Export PDF
             <mat-icon>file_download</mat-icon>

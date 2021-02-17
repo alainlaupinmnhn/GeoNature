@@ -1,0 +1,315 @@
+<div class="container-fluid mt-4 ">
+  <div class="row">
+    <div class="col-5">
+      <button
+        mat-raised-button
+        [routerLink]="['/metadata/dataset_detail', dataset?.id_dataset]"
+        class="mb-2"
+      >
+        <mat-icon>chevron_left</mat-icon>
+        Retour
+      </button>
+    </div>
+
+  </div>
+  <div class="row">
+
+    <div class="col-8">
+
+      <div class="card">
+        <div class="card-body">
+          <h5 class="text-muted"> Jeu de données</h5>
+          <h4>{{ dataset?.dataset_name }}</h4>
+        </div>
+      </div>
+    </div>
+    <div class="col-4">
+      <div class="card">
+        <div class="card-body">
+          <button
+            mat-raised-button
+            color="primary"
+            (click)="getPdf()"
+          >
+            Download PDF
+            <mat-icon>file_download</mat-icon>
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div id="pdf-container">
+    <div id="pdf-content-page-1" class="pdf-content">
+      <div class="header">
+        <img
+          class="bandeau"
+          src="./assets/images/Bandeau_pdf.jpg"
+          alt="Bandeau"
+        >
+        <img
+          class="logo"
+          src="./assets/images/logo_structure.jpg"
+          alt="Logo"
+        >
+      </div>
+
+      <div class="titre">
+        <label class="label-titre">
+          <br>
+          {{ pdfTitle }}
+        </label>
+        <br>
+        <label class="label-titre">
+          {{ dataset?.dataset_name }}
+        </label>
+        <div class="ligne-titre ligne main-color"></div>
+      </div>
+
+      <div class="etiquettes">
+        <div class="etiquette">
+          <div class="etiquette-haut">
+            <img class="logo-etiquette"
+                 src="./assets/images/Taxon_icon.jpg"
+                 alt="taxon-icon"
+                 id="taxon-icon"
+            >
+            <p class="titre-etiquette">Nombre de taxons</p>
+          </div>
+          <div class="etiquette-bas">
+            <p class="stat-etiquette">
+              {{ dataset?.taxa_count }}
+            </p>
+          </div>
+        </div>
+        <div class="etiquette">
+          <div class="etiquette-haut">
+            <img
+              class="logo-etiquette"
+              src="./assets/images/Donnee_icon.jpg"
+              alt="donnee-icon"
+            >
+            <p class="titre-etiquette">Nombre d'observations</p>
+          </div>
+          <div class="etiquette-bas">
+            <p class="stat-etiquette">
+              {{ dataset?.observation_count }}
+            </p>
+          </div>
+        </div>
+      </div>
+
+      <div class="description">
+        <div class="left-block">
+          <p class="fiche-descriptive">Fiche descriptive</p>
+          <div class="information">
+            <p class="info-titre">Identification</p>
+            <p class="info-contenu">
+              Identifiant SINP :
+              <br>
+              {{ dataset?.unique_dataset_id }}
+              <br>
+              Nom :
+              {{ dataset?.dataset_name }}
+              <br>
+              Nom court :
+              {{ dataset?.dataset_shortname }}
+              <br>
+              Description :
+              {{ dataset?.dataset_desc }}
+              <br>
+              Type de données :
+              {{ dataset?.data_type.label_default }}
+            </p>
+          </div>
+
+          <div class="information">
+            <p class="info-titre">Objectifs</p>
+            <p class="info-contenu">
+              {{ dataset?.dataset_objectif.label_default }}
+            </p>
+          </div>
+
+          <div class="information">
+            <p class="info-titre">Territoires</p>
+            <p class="info-contenu">
+              <span *ngIf="dataset?.terrestrial_domain">
+                Domaine continental
+              </span>
+              <br>
+              <span *ngIf="dataset?.marine_domain">
+                Domaine marin
+              </span>
+            </p>
+          </div>
+
+          <div class="information">
+            <p class="info-titre">Cadre de référence</p>
+            <p class="info-contenu">
+              <span *ngIf="dataset?.acquisition_framework.acquisition_framework_name">
+                {{ dataset?.acquisition_framework.acquisition_framework_name }}
+              </span>
+              <br>
+              <span *ngIf="dataset?.acquisition_framework.unique_acquisition_framework_id">
+                {{ dataset?.acquisition_framework.unique_acquisition_framework_id }}
+              </span>
+            </p>
+          </div>
+
+          <div class="information">
+            <p class="info-titre">Processus de collecte</p>
+            <p class="info-contenu">
+              <span *ngIf="dataset?.collecting_method.label_default">
+                {{ dataset?.collecting_method.label_default }}
+              </span>
+            </p>
+          </div>
+
+          <div *ngIf="!(dataset?.cor_dataset_actor && dataset?.cor_dataset_actor[5])">
+            <div class="information">
+              <p class="info-titre">Contacts</p>
+              <p class="info-contenu" *ngFor="let act of dataset?.cor_dataset_actor">
+                <span *ngIf="act.nomenclature_actor_role">
+                  {{ act.nomenclature_actor_role['mnemonique'] }} :
+                </span>
+                <span *ngIf="act.role">
+                  {{ act.role['nom_role'] }} {{ act.role['prenom_role'] }}
+                  <br>
+                </span>
+                <span *ngIf="act.organism">
+                  {{ act.organism['nom_organisme'] }}
+                  <br>
+                </span>
+                <span *ngIf="act.role">
+                  <span *ngIf="act.role['email']">
+                    {{ act.role['email'] }}
+                    <br>
+                  </span>
+                </span>
+              </p>
+            </div>
+
+            <div class="information" *ngIf="dataset?.keywords">
+              <p class="info-titre">Mots-clés</p>
+              <p class="info-contenu">
+                {{ dataset?.keywords }}
+              </p>
+            </div>
+          </div>
+        </div>
+
+        <div class="right-block">
+          <div class="carte" *ngIf="dataset?.bbox">
+            <p class="titre-section">Zone géographique</p>
+            <div style="display: block" #mapDiv>
+              <pnx-map  id="map-div"
+                        height="150px"
+                        searchBar="false"
+              >
+                <pnx-geojson
+                  [geojson]="dataset?.bbox"
+                  [zoomOnFirstTime]="true"
+                >
+                </pnx-geojson>
+              </pnx-map>
+            </div>
+            <img #mapImg [src]="mapJpg" hidden class="repartition-img"/>
+          </div>
+
+          <div *ngIf="this.pieChartLabels.length > 0 && dataset?.taxa_count > 0">
+            <p class="titre-section">Répartition des espèces</p>
+            <div style="display: block">
+              <canvas #chartCanvas id="canvas-repartition"
+                      baseChart
+                      [data]="pieChartData"
+                      [labels]="pieChartLabels"
+                      [chartType]="pieChartType"
+                      [colors]="pieChartColors"
+                      [options]="pieChartOptions"
+                      padding="20px"
+              >
+              </canvas>
+              <img #chartImg [src]="chartJpg" hidden class="repartition-img"/>
+            </div>
+          </div>
+
+          <div class="ca">
+            <hr class="ligne-titre main-color">
+            <p class="ca-initial">Cadre d'acquisition</p>
+
+            <div class="ca-initial-details">
+              <img
+                class="logo-ca-initial"
+                src="./assets/images/Taxon_icon_vert.jpg"
+                alt="taxon-vert-icon"
+              >
+              <p class="ca-initial-info">
+                <span *ngIf="dataset?.acquisition_framework.unique_acquisition_framework_id">
+                  {{ dataset?.acquisition_framework.unique_acquisition_framework_id }}
+                </span>
+                <span *ngIf="dataset?.acquisition_framework.acquisition_framework_name">
+                  <br>
+                  {{ dataset?.acquisition_framework.acquisition_framework_name }}
+                </span>
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="footer">
+        <a
+          target="_blank"
+          id="footer-url"
+          href="{{ footerUrl }}"
+        >{{ footerUrl }}</a>
+        <span id="footer-date">{{ footerDate | date:'long':'+0100':'fr' }}</span>
+      </div>
+    </div>
+    <hr>
+    <div id="pdf-content-page-2" class="pdf-content" *ngIf="dataset?.cor_dataset_actor && dataset?.cor_dataset_actor[5]">
+      <div class="description"
+      >
+        <div class="left-block" *ngIf="dataset?.cor_dataset_actor[5]">
+          <div class="information">
+            <p class="info-titre">Contacts</p>
+            <p class="info-contenu" *ngFor="let act of dataset?.cor_dataset_actor">
+              <span *ngIf="act.nomenclature_actor_role">
+                {{ act.nomenclature_actor_role['mnemonique'] }} :
+              </span>
+              <span *ngIf="act.role">
+                {{ act.role['nom_role'] }} {{ act.role['prenom_role'] }}
+                <br>
+              </span>
+              <span *ngIf="act.organism">
+                {{ act.organism['nom_organisme'] }}
+                <br>
+              </span>
+              <span *ngIf="act.role">
+                <span *ngIf="act.role['email']">
+                  {{ act.role['email'] }}
+                  <br>
+                </span>
+              </span>
+            </p>
+          </div>
+
+          <div class="information" *ngIf="dataset?.keywords">
+            <p class="info-titre">Mots-clés</p>
+            <p class="info-contenu">
+              {{ dataset?.keywords }}
+            </p>
+          </div>
+        </div>
+      </div>
+
+      <div class="footer">
+        <a
+          target="_blank"
+          id="footer-url"
+          href="{{ footerUrl }}"
+        >{{ footerUrl }}</a>
+        <span id="footer-date">{{ footerDate | date:'long':'+0100':'fr' }}</span>
+      </div>
+    </div>
+  </div>
+</div>

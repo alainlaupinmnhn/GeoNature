@@ -130,7 +130,6 @@ export class DatasetCardComponent implements OnInit {
   getPdf() {
     const url = `${AppConfig.API_ENDPOINT}/meta/dataset/export_pdf/${this.id_dataset}`;
     const dataUrl = this.chart ? this.chart.ctx.canvas.toDataURL('image/png') : '';
-    console.log(dataUrl);
     this._dfs.uploadCanvas(dataUrl).subscribe(data => {
       console.log(url);
 

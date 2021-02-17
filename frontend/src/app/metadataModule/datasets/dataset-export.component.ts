@@ -7,26 +7,23 @@ import {
   ViewChild
 } from '@angular/core';
 import { ActivatedRoute } from '@angular/router';
-import { DOCUMENT } from '@angular/common';
-import { registerLocaleData } from '@angular/common';
-import localeFr from '@angular/common/locales/fr';
-registerLocaleData(localeFr, 'fr');
 import { DataFormService } from '@geonature_common/form/data-form.service';
 import { BaseChartDirective } from 'ng2-charts';
 import { AppConfig } from '@geonature_config/app.config';
 import html2canvas from 'html2canvas';
 import jsPDF from 'jspdf';
+import { DOCUMENT } from '@angular/common';
 
 @Component({
-  selector: 'pnx-af-export',
-  templateUrl: './af-export.component.html',
-  styleUrls: ['./af-card.component.scss', '../metadata_pdf.css']
+  selector: 'pnx-dataset-export',
+  templateUrl: './dataset-export.component.html',
+  styleUrls: ['/dataset-card.scss', '../metadata_pdf.css']
 })
-export class AfExportComponent implements OnInit {
-  public id_af: number;
-  public af: any;
+export class DatasetExportComponent implements OnInit {
+  public id_dataset: number;
+  public dataset: any;
+  public geojsonData: any = null;
   public acquisitionFrameworks: any;
-  public is_certificate: boolean;
   public pdfName: string;
   //Titre
   public pdfClosedTitle: string;
@@ -100,61 +97,48 @@ export class AfExportComponent implements OnInit {
 
   public spinner = true;
 
-  constructor(private _dfs: DataFormService, private _route: ActivatedRoute, @Inject(DOCUMENT) private document: Document, private renderer: Renderer2) {}
+  constructor(private _dfs: DataFormService, private _route: ActivatedRoute, @Inject(DOCUMENT) private document: Document, private renderer: Renderer2) { }
+
   ngOnInit() {
     this._route.params.subscribe(params => {
-      this.id_af = params['id'];
-      if (this.id_af) {
-        this.getAf(this.id_af);
-      }
-    });
-    this.is_certificate = false;
-    this._route.queryParams.subscribe(params => {
-      if (params['certificate'] === 'true') {
-        this.is_certificate = true;
-      }
-      else {
-        this.is_certificate = false;
+      this.id_dataset = params['id'];
+      if (this.id_dataset) {
+        this.getDataset(this.id_dataset);
       }
     });
     // Titre
-    this.pdfClosedTitle = AppConfig.METADATA.CLOSED_AF_TITLE;
     this.pdfTitle = AppConfig.METADATA.AF_PDF_TITLE;
     // Etiquettes
     this.logo = "Logo_pdf.png";
     this.bandeau = "Bandeau_pdf.png";
     this.entite = "sinp";
     // Footer
-    this.footerUrl = AppConfig.URL_APPLICATION + "/#/metadata/af_detail/" + this.id_af;
+    this.footerUrl = AppConfig.URL_APPLICATION + "/#/metadata/dataset_detail/" + this.id_dataset;
     this.footerDate = new Date();
   }
 
-
-  getAf(id_af: number) {
-    this._dfs.getAcquisitionFrameworkDetails(id_af).subscribe(data => {
-      this.af = data;
-      if (this.af.acquisition_framework_start_date) {
-        var start_date = new Date(this.af.acquisition_framework_start_date);
-        this.af.acquisition_framework_start_date = start_date.toLocaleDateString();
+  getDataset(id) {
+    this._dfs.getDatasetDetails(id).subscribe(data => {
+      this.dataset = data;
+      console.log(this.dataset);
+      if (this.dataset.modules) {
+        this.dataset.modules = this.dataset.modules.map(e => e.module_code).join(', ');
       }
-      if (this.af.acquisition_framework_end_date) {
-        var end_date = new Date(this.af.acquisition_framework_end_date);
-        this.af.acquisition_framework_end_date = end_date.toLocaleDateString();
+      if ('bbox' in data) {
+        this.geojsonData = data['bbox'];
       }
-      if (this.af.datasets) {
-        this._dfs
-          .getTaxaDistribution('group2_inpn', { id_af: this.af.id_acquisition_framework })
-          .subscribe(data2 => {
-            for (let row of data2) {
-              this.pieChartData.push(row['count']);
-              this.pieChartLabels.push(row['group']);
-            }
-            this.spinner = false;
-            setTimeout(() => {
-              this.chart.chart.update();
-            }, 1000);
-          });
+    });
+    this._dfs.getTaxaDistribution('group2_inpn', { id_dataset: id }).subscribe(data => {
+      this.pieChartData = [];
+      this.pieChartLabels = [];
+      for (let row of data) {
+        this.pieChartData.push(row['count']);
+        this.pieChartLabels.push(row['group']);
       }
+      // in order to have chart instance
+      setTimeout(() => {
+        this.chart.chart.update();
+      }, 1000);
     });
   }
 
@@ -207,16 +191,11 @@ export class AfExportComponent implements OnInit {
     this.convertGraphs().then((value) => {
       pdf.html((document.querySelector('#pdf-content-page-1') as HTMLElement), {
         callback: doc => {
-          if (this.is_certificate && this.af.initial_closing_date) {
-            this.pdfDate = new Date(this.af.initial_closing_date);
-            this.footerDate = new Date();
-          } else {
-            this.pdfDate = new Date();
-            this.footerDate = this.pdfDate;
-          }
+          this.pdfDate = new Date();
+          this.footerDate = this.pdfDate;
 
-          this.pdfName = this.id_af.toString();
-          this.pdfName = this.pdfName.concat("_", this.af.acquisition_framework_name.substring(0, 31).replace(' ', '_'));
+          this.pdfName = this.id_dataset.toString();
+          this.pdfName = this.pdfName.concat("_", this.dataset.dataset_name.substring(0, 31).replace(' ', '_'));
           if (this.pdfDate.getDate() < 10) {
             this.pdfName = this.pdfName.concat("_0", this.pdfDate.getDate().toString());
           } else {
@@ -257,7 +236,7 @@ export class AfExportComponent implements OnInit {
           } else {
             doc.save(this.pdfName);
           }
-        },
+        }
       });
     });
   }

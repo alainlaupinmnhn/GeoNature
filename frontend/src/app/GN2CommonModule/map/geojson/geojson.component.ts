@@ -57,7 +57,7 @@ export class GeojsonComponent implements OnInit, OnChanges {
         return;
       }
 
-      map.fitBounds(curLayerGroup.getBounds());
+      map.fitBounds(curLayerGroup.getBounds(), {maxZoom: 14});
     }, 200);
   }
 
