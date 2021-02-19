@@ -7,8 +7,7 @@ import {
   ViewChild
 } from '@angular/core';
 import { ActivatedRoute } from '@angular/router';
-import { DOCUMENT } from '@angular/common';
-import { registerLocaleData } from '@angular/common';
+import { DOCUMENT, registerLocaleData } from '@angular/common';
 import localeFr from '@angular/common/locales/fr';
 registerLocaleData(localeFr, 'fr');
 import { DataFormService } from '@geonature_common/form/data-form.service';
@@ -29,7 +28,7 @@ export class AfExportComponent implements OnInit {
   public acquisitionFrameworks: any;
   public is_certificate: boolean;
   public pdfName: string;
-  //Titre
+  // Titre
   public pdfClosedTitle: string;
   public pdfTitle: string;
   // Etiquettes
@@ -122,11 +121,11 @@ export class AfExportComponent implements OnInit {
     this.pdfClosedTitle = AppConfig.METADATA.CLOSED_AF_TITLE;
     this.pdfTitle = AppConfig.METADATA.AF_PDF_TITLE;
     // Etiquettes
-    this.logo = "Logo_pdf.png";
-    this.bandeau = "Bandeau_pdf.png";
-    this.entite = "sinp";
+    this.logo = 'Logo_pdf.png';
+    this.bandeau = 'Bandeau_pdf.png';
+    this.entite = 'sinp';
     // Footer
-    this.footerUrl = AppConfig.URL_APPLICATION + "/#/metadata/af_detail/" + this.id_af;
+    this.footerUrl = AppConfig.URL_APPLICATION + '/#/metadata/af_detail/' + this.id_af;
     this.footerDate = new Date();
   }
 
@@ -135,11 +134,11 @@ export class AfExportComponent implements OnInit {
     this._dfs.getAcquisitionFrameworkDetails(id_af).subscribe(data => {
       this.af = data;
       if (this.af.acquisition_framework_start_date) {
-        var start_date = new Date(this.af.acquisition_framework_start_date);
+        const start_date = new Date(this.af.acquisition_framework_start_date);
         this.af.acquisition_framework_start_date = start_date.toLocaleDateString();
       }
       if (this.af.acquisition_framework_end_date) {
-        var end_date = new Date(this.af.acquisition_framework_end_date);
+        const end_date = new Date(this.af.acquisition_framework_end_date);
         this.af.acquisition_framework_end_date = end_date.toLocaleDateString();
       }
       if (this.af.datasets) {
@@ -161,8 +160,8 @@ export class AfExportComponent implements OnInit {
 
   graphToImg() {
     // Change the ChartJS chart into a picture to avoid transparency incompatibility in jsPDF
-    var canvas = <HTMLCanvasElement> this.document.getElementById("canvas-repartition");
-    if(canvas) {
+    const canvas = this.document.getElementById('canvas-repartition') as HTMLCanvasElement;
+    if (canvas) {
       this.chartJpg = canvas.toDataURL('image/jpg');
       this.renderer.removeAttribute(this.chartImg.nativeElement, 'hidden');
       this.renderer.setAttribute(this.chartCanvas.nativeElement, 'hidden', 'true');
@@ -172,17 +171,17 @@ export class AfExportComponent implements OnInit {
 
   mapToImg() {
     // Remove the navigation buttons to render a clean image
-    const mapButtons = document.getElementsByClassName("leaflet-top leaflet-right")[0];
+    const mapButtons = document.getElementsByClassName('leaflet-top leaflet-right')[0];
     if (mapButtons) {
       mapButtons.remove();
     }
     // Remove the search bar to render a clean image
-    const mapSearchbar = document.getElementsByClassName("form-row ng-star-inserted")[0];
+    const mapSearchbar = document.getElementsByClassName('form-row ng-star-inserted')[0];
     if (mapSearchbar) {
       mapSearchbar.remove();
     }
     // Change the Leaflet map into a picture to avoid transparency incompatibility in jsPDF
-    const divSelector = <HTMLElement> document.querySelector("#map-div");
+    const divSelector = document.querySelector('#map-div') as HTMLElement;
     if (divSelector) {
       html2canvas(divSelector, { useCORS: true }).then(canvas => {
         if(canvas) {
@@ -209,7 +208,7 @@ export class AfExportComponent implements OnInit {
 
   getPdf() {
     // We generate the PDF from the DIV element
-    const pdf = new jsPDF('p','pt','a4');
+    const pdf = new jsPDF('p', 'pt', 'a4');
     this.convertGraphs().then((value) => {
       pdf.html((document.querySelector('#pdf-content-page-1') as HTMLElement), {
         callback: doc => {
@@ -224,30 +223,30 @@ export class AfExportComponent implements OnInit {
 
           // PDF file name generated according to the variables of the dataset
           this.pdfName = this.id_af.toString();
-          this.pdfName = this.pdfName.concat("_", this.af.acquisition_framework_name.substring(0, 31).replace(' ', '_'));
+          this.pdfName = this.pdfName.concat('_', this.af.acquisition_framework_name.substring(0, 31).replace(' ', '_'));
           if (this.pdfDate.getDate() < 10) {
-            this.pdfName = this.pdfName.concat("_0", this.pdfDate.getDate().toString());
+            this.pdfName = this.pdfName.concat('_0', this.pdfDate.getDate().toString());
           } else {
-            this.pdfName = this.pdfName.concat("_", this.pdfDate.getDate().toString());
+            this.pdfName = this.pdfName.concat('_', this.pdfDate.getDate().toString());
           }
           if (this.pdfDate.getMonth() < 9) {
-            this.pdfName = this.pdfName.concat("0", (this.pdfDate.getMonth() + 1).toString());
+            this.pdfName = this.pdfName.concat('0', (this.pdfDate.getMonth() + 1).toString());
           } else {
             this.pdfName = this.pdfName.concat((this.pdfDate.getMonth() + 1).toString());
           }
           this.pdfName = this.pdfName.concat(this.pdfDate.getFullYear().toString());
           if (this.pdfDate.getHours() < 10) {
-            this.pdfName = this.pdfName.concat("_0", this.pdfDate.getHours().toString());
+            this.pdfName = this.pdfName.concat('_0', this.pdfDate.getHours().toString());
           } else {
-            this.pdfName = this.pdfName.concat("_", this.pdfDate.getHours().toString());
+            this.pdfName = this.pdfName.concat('_', this.pdfDate.getHours().toString());
           }
           if (this.pdfDate.getMinutes() < 10) {
-            this.pdfName = this.pdfName.concat("0", this.pdfDate.getMinutes().toString());
+            this.pdfName = this.pdfName.concat('0', this.pdfDate.getMinutes().toString());
           } else {
             this.pdfName = this.pdfName.concat(this.pdfDate.getMinutes().toString());
           }
           if (this.pdfDate.getSeconds() < 10) {
-            this.pdfName = this.pdfName.concat("0", this.pdfDate.getSeconds().toString());
+            this.pdfName = this.pdfName.concat('0', this.pdfDate.getSeconds().toString());
           } else {
             this.pdfName = this.pdfName.concat(this.pdfDate.getSeconds().toString());
           }
@@ -260,8 +259,8 @@ export class AfExportComponent implements OnInit {
               callback: doc => {
                 doc.save(this.pdfName);
               },
-              x:-99999,
-              y:840
+              x: -99999,
+              y: 840
             });
           } else {
             doc.save(this.pdfName);
