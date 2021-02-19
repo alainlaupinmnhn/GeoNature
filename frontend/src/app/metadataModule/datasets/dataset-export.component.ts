@@ -9,6 +9,7 @@ import {
 import { ActivatedRoute } from '@angular/router';
 import { DataFormService } from '@geonature_common/form/data-form.service';
 import { BaseChartDirective } from 'ng2-charts';
+import 'chartjs-plugin-labels';
 import { AppConfig } from '@geonature_config/app.config';
 import html2canvas from 'html2canvas';
 import jsPDF from 'jspdf';
@@ -47,7 +48,7 @@ export class DatasetExportComponent implements OnInit {
   public pieChartColors = [];
   // Dictionnaire contenant les options à implémenter sur le graphe (calcul des pourcentages notamment)
   public pieChartOptions = {
-    cutoutPercentage: 80,
+    cutoutPercentage: 30,
     animation: {
       duration: 0
     },
@@ -69,20 +70,13 @@ export class DatasetExportComponent implements OnInit {
     plugins: {
       labels: [
         {
-          render: 'label',
-          arc: true,
-          fontSize: 14,
-          position: 'outside',
-          overlap: false
-        },
-        {
           render: 'percentage',
-          fontColor: 'white',
-          fontSize: 14,
+          fontColor: 'blackgray',
+          fontSize: 12,
           fontStyle: 'bold',
           precision: 2,
-          textShadow: true,
-          overlap: false
+          textShadow: false,
+          overlap: true
         }
       ]
     }
@@ -97,7 +91,12 @@ export class DatasetExportComponent implements OnInit {
 
   public spinner = true;
 
-  constructor(private _dfs: DataFormService, private _route: ActivatedRoute, @Inject(DOCUMENT) private document: Document, private renderer: Renderer2) { }
+  constructor(
+    private _dfs: DataFormService,
+    private _route: ActivatedRoute,
+    @Inject(DOCUMENT) private document: Document,
+    private renderer: Renderer2
+  ) { }
 
   ngOnInit() {
     this._route.params.subscribe(params => {
@@ -143,6 +142,7 @@ export class DatasetExportComponent implements OnInit {
   }
 
   graphToImg() {
+    // Change the ChartJS chart into a picture to avoid transparency incompatibility in jsPDF
     var canvas = <HTMLCanvasElement> this.document.getElementById("canvas-repartition");
     if(canvas) {
       this.chartJpg = canvas.toDataURL('image/jpg');
@@ -153,14 +153,17 @@ export class DatasetExportComponent implements OnInit {
   }
 
   mapToImg() {
+    // Remove the navigation buttons to render a clean image
     const mapButtons = document.getElementsByClassName("leaflet-top leaflet-right")[0];
     if (mapButtons) {
       mapButtons.remove();
     }
+    // Remove the search bar to render a clean image
     const mapSearchbar = document.getElementsByClassName("form-row ng-star-inserted")[0];
     if (mapSearchbar) {
       mapSearchbar.remove();
     }
+    // Change the Leaflet map into a picture to avoid transparency incompatibility in jsPDF
     const divSelector = <HTMLElement> document.querySelector("#map-div");
     if (divSelector) {
       html2canvas(divSelector, { useCORS: true }).then(canvas => {
@@ -175,6 +178,7 @@ export class DatasetExportComponent implements OnInit {
   }
 
   convertGraphs() {
+    // Convert the two graphs into pictures and return a Promise to ensure having the pictures before generating PDF
     const promise = new Promise((resolve, reject) => {
       this.mapToImg();
       this.graphToImg();
@@ -186,14 +190,16 @@ export class DatasetExportComponent implements OnInit {
   }
 
   getPdf() {
+    // We generate the PDF from the DIV element
     const pdf = new jsPDF('p','pt','a4');
-
     this.convertGraphs().then((value) => {
       pdf.html((document.querySelector('#pdf-content-page-1') as HTMLElement), {
         callback: doc => {
+          // Redefinition of the date to display the generation date and not the page loading one
           this.pdfDate = new Date();
           this.footerDate = this.pdfDate;
 
+          // PDF file name generated according to the variables of the dataset
           this.pdfName = this.id_dataset.toString();
           this.pdfName = this.pdfName.concat("_", this.dataset.dataset_name.substring(0, 31).replace(' ', '_'));
           if (this.pdfDate.getDate() < 10) {
@@ -223,6 +229,7 @@ export class DatasetExportComponent implements OnInit {
             this.pdfName = this.pdfName.concat(this.pdfDate.getSeconds().toString());
           }
 
+          // If we have a second page in the HTML preview, we add it to the jsPDF element
           const page2 = document.querySelector('#pdf-content-page-2') as HTMLElement;
           if (page2) {
             doc.addPage('a4', 'p');
