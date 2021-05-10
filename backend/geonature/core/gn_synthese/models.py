@@ -1,8 +1,8 @@
 from collections import OrderedDict
 
 from sqlalchemy import ForeignKey, or_, Sequence
-from sqlalchemy.orm import relationship
-from sqlalchemy.sql import select, func
+from sqlalchemy.orm import relationship, column_property
+from sqlalchemy.sql import select, func, exists
 from sqlalchemy.dialects.postgresql import UUID, JSONB
 from geoalchemy2 import Geometry
 from geoalchemy2.shape import to_shape
@@ -48,16 +48,10 @@ class CorObserverSynthese(DB.Model):
     id_role = DB.Column(DB.Integer, ForeignKey("utilisateurs.t_roles.id_role"), primary_key=True)
 
 
-corAreaSynthese = DB.Table(
-    "cor_area_synthese",
-    DB.MetaData(schema="gn_synthese"),
-    DB.Column(
-        "id_synthese",
-        DB.Integer,
-        ForeignKey("gn_synthese.cor_area_synthese.id_synthese"),
-        primary_key=True,
-    ),
-    DB.Column("id_area", DB.Integer, ForeignKey("ref_geo.t_areas.id_area"), primary_key=True),
+corAreaSynthese = DB.Table("cor_area_synthese",
+    DB.Column("id_synthese", DB.Integer, ForeignKey("gn_synthese.synthese.id_synthese"), primary_key=True),
+    DB.Column("id_area", DB.Integer, ForeignKey("ref_geo.l_areas.id_area"), primary_key=True),
+    schema='gn_synthese',
 )
 
 
@@ -93,10 +87,11 @@ class VSyntheseDecodeNomenclatures(DB.Model):
 class Synthese(DB.Model):
     __tablename__ = "synthese"
     __table_args__ = {"schema": "gn_synthese"}
-    id_synthese = DB.Column(DB.Integer, primary_key=True)
+    id_synthese = DB.Column(DB.Integer, primary_key=True, nullable=False)
     unique_id_sinp = DB.Column(UUID(as_uuid=True))
     unique_id_sinp_grp = DB.Column(UUID(as_uuid=True))
-    id_source = DB.Column(DB.Integer)
+    id_source = DB.Column(DB.Integer, ForeignKey(TSources.id_source))
+    source = relationship(TSources)
     id_module = DB.Column(DB.Integer)
     entity_source_pk_value = DB.Column(DB.Integer)  # FIXME varchar in db!
     id_dataset = DB.Column(DB.Integer)
@@ -126,7 +121,7 @@ class Synthese(DB.Model):
     count_max = DB.Column(DB.Integer)
     cd_nom = DB.Column(DB.Integer)
     cd_hab = DB.Column(DB.Integer)
-    nom_cite = DB.Column(DB.Unicode(length=1000))
+    nom_cite = DB.Column(DB.Unicode(length=1000), nullable=False)
     meta_v_taxref = DB.Column(DB.Unicode(length=50))
     sample_number_proof = DB.Column(DB.UnicodeText)
     digital_proof = DB.Column(DB.UnicodeText)
@@ -141,8 +136,8 @@ class Synthese(DB.Model):
     the_geom_local = DB.Column(Geometry("GEOMETRY", config["LOCAL_SRID"]))
     precision = DB.Column(DB.Integer)
     id_area_attachment = DB.Column(DB.Integer)
-    date_min = DB.Column(DB.DateTime)
-    date_max = DB.Column(DB.DateTime)
+    date_min = DB.Column(DB.DateTime, nullable=False)
+    date_max = DB.Column(DB.DateTime, nullable=False)
     validator = DB.Column(DB.Unicode(length=1000))
     validation_comment = DB.Column(DB.Unicode)
     observers = DB.Column(DB.Unicode(length=1000))
@@ -156,6 +151,7 @@ class Synthese(DB.Model):
     meta_create_date = DB.Column(DB.DateTime)
     meta_update_date = DB.Column(DB.DateTime)
     last_action = DB.Column(DB.Unicode)
+    areas = relationship('LAreas', secondary=corAreaSynthese)
 
     def get_geofeature(self, recursif=True, columns=None):
         return self.as_geofeature("the_geom_4326", "id_synthese", recursif, columns=columns)
@@ -164,9 +160,9 @@ class Synthese(DB.Model):
 @serializable
 class CorAreaSynthese(DB.Model):
     __tablename__ = "cor_area_synthese"
-    __table_args__ = {"schema": "gn_synthese"}
-    id_synthese = DB.Column(DB.Integer, primary_key=True)
-    id_area = DB.Column(DB.Integer)
+    __table_args__ = {"schema": "gn_synthese", "extend_existing": True}
+    id_synthese = DB.Column(DB.Integer, ForeignKey("gn_synthese.synthese.id_synthese"), primary_key=True)
+    id_area = DB.Column(DB.Integer, ForeignKey("ref_geo.l_areas.id_area"), primary_key=True)
 
 
 @serializable
@@ -267,6 +263,11 @@ class VSyntheseForWebApp(DB.Model):
     url_source = DB.Column(DB.Unicode)
     st_asgeojson = DB.Column(DB.Unicode)
 
+    has_medias = column_property(
+        exists([TMedias.id_media]).\
+            where(TMedias.uuid_attached_row==unique_id_sinp)
+    )
+
     def get_geofeature(self, recursif=False, columns=()):
         return self.as_geofeature("the_geom_4326", "id_synthese", recursif, columns=columns)
 
@@ -345,7 +346,7 @@ class SyntheseOneRecord(VSyntheseDecodeNomenclatures):
         primary_key=True,
     )
     unique_id_sinp = DB.Column(UUID(as_uuid=True))
-    id_source = DB.Column(DB.Integer)
+    id_source = DB.Column(DB.Integer, ForeignKey(TSources.id_source))
     id_dataset = DB.Column(DB.Integer)
     cd_hab = DB.Column(DB.Integer, ForeignKey(Habref.cd_hab))
 
@@ -357,9 +358,6 @@ class SyntheseOneRecord(VSyntheseDecodeNomenclatures):
     areas = DB.relationship(
         "LAreas",
         secondary=corAreaSynthese,
-        primaryjoin=(corAreaSynthese.c.id_synthese == id_synthese),
-        secondaryjoin=(corAreaSynthese.c.id_area == LAreas.id_area),
-        foreign_keys=[corAreaSynthese.c.id_synthese, corAreaSynthese.c.id_area],
     )
     datasets = DB.relationship(
         "TDatasets", primaryjoin=(TDatasets.id_dataset == id_dataset), foreign_keys=[id_dataset],
