@@ -19,6 +19,7 @@ class BibAreasTypes(DB.Model):
     ref_name = DB.Column(DB.Unicode)
     ref_version = DB.Column(DB.Integer)
     num_version = DB.Column(DB.Unicode)
+    zoom_min = DB.Column(DB.Integer)
 
 
 @serializable
@@ -34,6 +35,15 @@ class LAreas(DB.Model):
     geom = DB.Column(Geometry("GEOMETRY", 4326))
     area_type = DB.relationship("BibAreasTypes", lazy="select")
 
+@serializable
+@geoserializable
+class LAreasGeoJson(LAreas):
+    geojson_4326 = DB.Column(DB.Unicode)
+
+    def get_geofeature(self, recursif=True):
+        return self.as_geofeature(
+            "geojson_4326", "id_area", recursif
+        )
 
 @serializable
 class LiMunicipalities(DB.Model):

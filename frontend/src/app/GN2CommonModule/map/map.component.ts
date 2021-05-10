@@ -6,6 +6,7 @@ import { AppConfig } from '@geonature_config/app.config';
 import { HttpClient, HttpParams } from '@angular/common/http';
 import * as L from 'leaflet';
 import { CommonService } from '../service/common.service';
+import { DataFormService } from '../form/data-form.service';
 
 import 'leaflet-draw';
 import { FormControl } from '@angular/forms';
@@ -71,9 +72,17 @@ export class MapComponent implements OnInit {
   public searchFailed = false;
   public locationControl = new FormControl();
   public map: Map;
+  public dictAreasColors: any;
+  public listDefaultColors: Array<any>;
+  public areaTypes: Array<any>;
+  public currentLayers: Array<any>;
+  public stationsgeoJson: L.GeoJSON;
+  public areasgeoJson: L.GeoJSON;
+  public featuresAreas: any;
   constructor(
     private mapService: MapService,
     private _commonService: CommonService,
+    private _gnDataService: DataFormService,
     private _http: HttpClient,
     private _nominatim: NominatimService,
   ) {
@@ -116,7 +125,8 @@ export class MapComponent implements OnInit {
       center = L.latLng(AppConfig.MAPCONFIG.CENTER[0], AppConfig.MAPCONFIG.CENTER[1]);
     }
 
-
+    // Personalize the default colors for the loaded area types
+    this.listDefaultColors = ["#6B8E23", "#8B0000", "#FF8C00", "#800080", "#4682B4"];
 
     const map = L.map(this.mapContainer.nativeElement, {
       zoomControl: false,
@@ -161,7 +171,127 @@ export class MapComponent implements OnInit {
         center: this.map.getCenter(),
         zoom: this.map.getZoom()
       };
+      this.addCurrentFeatures();
     });
+
+    this.currentLayers = [];
+    this._gnDataService.getAreaTypes().subscribe(data => {
+      this.areaTypes = data;
+    });
+    this.dictAreasColors = {};
+  }
+
+  fetchTypesAreas(typeId, event) {
+    const zoomMin = this.areaTypes.find(t => t.id_type == typeId)['zoom_min'];
+    if (this.map.getZoom() >= zoomMin || zoomMin === undefined) {
+      this._gnDataService.getAreas([typeId], undefined, 100000, true).subscribe(geojsonAreas => {
+        if (event.checked) {
+          // If checkbox checked, we add to related data to the currentLayers list
+          const layer = [];
+          geojsonAreas.forEach(area => {
+            layer.push(area.geojson_4326);
+          });
+          this.currentLayers.push({idDB : typeId, data : layer});
+        } else {
+          // If the checkbox is unchecked, we find the related data in the currentLayers list and we remove it
+          const indexArea = this.currentLayers.findIndex(dict => dict.idDB === typeId);
+          this.currentLayers.splice(indexArea, 1);
+        }
+
+        this.addCurrentFeatures();
+      });
+    } else {
+      if (event.checked) {
+        this._commonService.translateToaster(
+          "warning",
+          "Affichage indisponible pour ce niveau de zoom."
+        );
+      }
+    }
+  }
+
+  addCurrentFeatures() {
+    // We start a new featureCollection that will contain all the selected features
+    const featureCollection = {
+      type: 'FeatureCollection',
+      features: []
+    };
+
+    // We add all the features contained in the currentStations list, in the featureCollection
+    this.currentLayers.forEach(feature => {
+      const color = this.assignColorToArea(feature);
+
+      feature.data.forEach(layer => {
+        if(this.getLayerBoundings(layer)) {
+          // If the layer is within the actual bounding box, we add it to the list of features to display
+          featureCollection.features.push({'type' : 'Feature', 'geometry' : JSON.parse(layer),
+            properties: {
+              name: 'Multipolygon',
+              style: {
+                color: color,
+                opacity: 0.4,
+                fillColor: color,
+                fillOpacity: 0.1,
+                smoothFactor: 0.1
+              }
+            }
+          });
+        }
+      });
+    });
+
+    this.featuresAreas = featureCollection;
+
+    this.setAreasOnLayers();
+  }
+
+  assignColorToArea(feature) {
+    // Define the color to assign to the area
+    let color = '';
+    if (feature.idDB in this.dictAreasColors) {
+      // If area already set we reaload its color
+      color = this.dictAreasColors[feature.idDB];
+    } else {
+      // If area is new
+      this.listDefaultColors.forEach(defaultColor => {
+        if (Object.values(this.dictAreasColors).indexOf(defaultColor) < 0 && color === '') {
+          // If a color in the default color list is unset, we use it
+          color = defaultColor;
+          this.dictAreasColors[feature.idDB] = color;
+        }
+      });
+      if (color === '') {
+        // If no color are unused in the default list, we generate a random one
+        color = '#' + (0x1000000 + (Math.random()) * 0xffffff).toString(16).substr(1, 6);
+        this.dictAreasColors[feature.idDB] = color;
+      }
+    }
+    return color;
+  }
+
+  getLayerBoundings(layer) {
+    // Define if the layer is present within the actual bounding box
+    const coordinates = JSON.parse(layer).coordinates[0][0];
+    const layerMinLat = Math.min.apply(Math, coordinates.map(function(o) { return o[1]; }));
+    const layerMaxLat = Math.max.apply(Math, coordinates.map(function(o) { return o[1]; }));
+    const layerMinLng = Math.min.apply(Math, coordinates.map(function(o) { return o[0]; }));
+    const layerMaxLng = Math.max.apply(Math, coordinates.map(function(o) { return o[0]; }));
+    const layerBounds = L.latLngBounds(L.latLng(layerMinLat, layerMinLng), L.latLng(layerMaxLat, layerMaxLng));
+    return this.map.getBounds().contains(layerBounds) || this.map.getBounds().intersects(layerBounds);
+  }
+
+  setAreasOnLayers() {
+    if (this.areasgeoJson) {
+      this.mapService.map.removeLayer(this.areasgeoJson);
+    }
+
+    this.areasgeoJson = this.mapService.L.geoJSON(this.featuresAreas, {
+      style: feature => {
+        return feature.properties.style;
+      }
+    });
+
+    this.areasgeoJson.addTo(this.mapService.map);
 
     setTimeout(() => {
       this.map.invalidateSize();
@@ -170,7 +300,7 @@ export class MapComponent implements OnInit {
   }
 
   /** Retrocompatibility hack to format map config to the expected format:
-   * 
+   *
    {
     name: string,
     url: string,

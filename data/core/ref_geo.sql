@@ -209,7 +209,8 @@ CREATE TABLE bib_areas_types (
     type_desc text,
     ref_name character varying(200),
     ref_version integer,
-    num_version character varying(50)
+    num_version character varying(50),
+    zoom_min integer
 );
 COMMENT ON COLUMN bib_areas_types.ref_name IS 'Indique le nom du référentiel géographique utilisé pour ce type';
 COMMENT ON COLUMN bib_areas_types.ref_version IS 'Indique l''année du référentiel utilisé';

@@ -304,7 +304,7 @@ export class DataFormService {
     return this._http.get<any>(`${AppConfig.API_ENDPOINT}/geo/municipalities`, { params: params });
   }
 
-  getAreas(area_type_list: Array<number>, area_name?) {
+  getAreas(area_type_list: Array<number>, area_name?, limit?, as_geojson: boolean = false) {
     let params: HttpParams = new HttpParams();
 
     area_type_list.forEach(id_type => {
@@ -315,7 +315,16 @@ export class DataFormService {
       params = params.set('area_name', area_name);
     }
 
+    if (limit) {
+      params = params.set('limit', limit);
+    }
+    params = params.set('as_geojson', as_geojson.toString());
+
     return this._http.get<any>(`${AppConfig.API_ENDPOINT}/geo/areas`, { params: params });
+  }
+
+  getAreaTypes() {
+    return this._http.get<any>(`${AppConfig.API_ENDPOINT}/geo/area_types`);
   }
 
   getValidationHistory(uuid_attached_row) {
